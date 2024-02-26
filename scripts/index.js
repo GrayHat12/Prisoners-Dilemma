@@ -98,14 +98,20 @@ const architectureChart = new Chart(architectureChartElement, {
                 min: 0,
                 max: 55
             }
+        },
+        plugins: {
+            title: {
+                display: true,
+                text: 'Network Arc - Population'
+            }
+        },
+        spanGaps: true,
+        datasets: {
+            line: {
+                pointRadius: 0 // disable for all `'line'` datasets
+            },
         }
-    },
-    spanGaps: true,
-    datasets: {
-        line: {
-            pointRadius: 0 // disable for all `'line'` datasets
-        }
-    },
+    }
 });
 
 const architectureScoreChart = new Chart(architectureScoreElement, {
@@ -128,6 +134,12 @@ const architectureScoreChart = new Chart(architectureScoreElement, {
                 pointRadius: 0 // disable for all `'line'` datasets
             }
         },
+        plugins: {
+            title: {
+                display: true,
+                text: 'Network Arc - Score'
+            }
+        }
     }
 });
 
@@ -164,6 +176,12 @@ const lineChart = new Chart(lineChartElement, {
                 pointRadius: 0 // disable for all `'line'` datasets
             }
         },
+        plugins: {
+            title: {
+                display: true,
+                text: 'Tendency - Population'
+            }
+        }
     }
 });
 
@@ -193,6 +211,12 @@ const populationScatter = new Chart(populationScatterElement, {
                 // min: 50000
             }
         },
+        plugins: {
+            title: {
+                display: true,
+                text: 'People - Tendency'
+            }
+        }
         // animation: false
     }
 });
@@ -216,6 +240,12 @@ const personScoreChart = new Chart(personbarElement, {
             }
         },
         // animation: false
+        plugins: {
+            title: {
+                display: true,
+                text: 'Person - Score'
+            }
+        }
     },
 });
 
@@ -396,7 +426,7 @@ class GenerationSimulator {
     generationalMutation() {
         console.log("Running Generational Mutation");
         let totalScore = Object.values(this.scoreBoard).reduce((sum, score) => score + sum, 0);
-        let lowestScorer = Object.entries(this.scoreBoard).sort((a,b) => a[1] - b[1]);
+        let lowestScorer = Object.entries(this.scoreBoard).sort((a, b) => a[1] - b[1]);
         for (let i = lowestScorer.length - 1; i > (lowestScorer.length - 6); i--) {
             let replicateBeing = this.beings.find(x => x.id === lowestScorer[i][0]);
             let child = new Being();
