@@ -194,7 +194,7 @@ const populationScatter = new Chart(populationScatterElement, {
             label: 'HUMAN',
             data: [],
             backgroundColor: 'rgb(0, 255, 0)'
-        },{
+        }, {
             label: 'COOPERATIVE',
             data: [],
             backgroundColor: 'rgb(54, 162, 235)'
@@ -342,20 +342,6 @@ class GenerationSimulator {
             for (let otherBeing of this.beings) {
                 this.simulateOneMatch(rounds, being, otherBeing);
             }
-            let arch = being.id !== human.id ? `N${being.nodeCount.toString()}` : being.id;
-            if (architectures[arch]) {
-                if (being.id !== human.id) architectures[arch].population += 1;
-                architectures[arch].score += this.scoreBoard[being.id];
-            } else {
-                if (being.id !== human.id)
-                    architectures[arch] = {
-                        population: 1,
-                        score: this.scoreBoard[being.id]
-                    };
-                else architectures[arch] = {
-                    score: this.scoreBoard[being.id]
-                }
-            }
         }
 
         let scores = [];
@@ -369,6 +355,20 @@ class GenerationSimulator {
             } else {
                 morality.DEFECT += 1;
                 populationScatter.data.datasets[2].data.push({ x: being.morality, y: this.scoreBoard[being.id] });
+            }
+            let arch = being.id !== human.id ? `N${being.nodeCount.toString()}` : being.id;
+            if (architectures[arch]) {
+                if (being.id !== human.id) architectures[arch].population += 1;
+                architectures[arch].score += this.scoreBoard[being.id];
+            } else {
+                if (being.id !== human.id)
+                    architectures[arch] = {
+                        population: 1,
+                        score: this.scoreBoard[being.id]
+                    };
+                else architectures[arch] = {
+                    score: this.scoreBoard[being.id]
+                }
             }
             scores.push({ score: this.scoreBoard[being.id], id: being.id, morality: being.morality });
         }
