@@ -132,7 +132,7 @@ class GConnection {
 
     mutate() {
         if (Math.random() < CONNECTION_STRENGTH_MUTATE_PROBABILITY) {
-            console.log("Mutating Connection Strength");
+            // console.log("Mutating Connection Strength");
             let difference = gaussianRandom() * CONNECTION_STRENGTH_MUTATION_SCOPE;
             // let sign = Math.random() < 0.5 ? 1 : -1;
             this.#strength += difference;
@@ -229,13 +229,13 @@ class GNode {
 
     mutate() {
         if (Math.random() < NODE_WEIGHT_MUTATE_PROBABILITY) {
-            console.log("Modifying Node Weights");
+            // console.log("Modifying Node Weights");
             let difference = gaussianRandom() * NODE_WEIGHT_MUTATION_SCOPE;
             // let sign = Math.random() < 0.5 ? 1 : -1;
             this.#weight += difference;
         }
         if (Math.random() < NODE_BIAS_MUTATE_PROBABILITY) {
-            console.log("Modifying Node Bias");
+            // console.log("Modifying Node Bias");
             let difference = gaussianRandom() * NODE_BIAS_MUTATION_SCOPE;
             // let sign = Math.random() < 0.5 ? 1 : -1;
             this.#bias += difference;
@@ -411,22 +411,22 @@ class Brain {
             // nodeMapping[pendingConnections[connectionId].from].addOutgoingConnection(connection);
         }
 
-        console.log("Successfully Imported");
-        console.debug(nodeMapping, pendingConnections);
+        // console.log("Successfully Imported");
+        // console.debug(nodeMapping, pendingConnections);
     }
 
     mutate() {
         for (let node of [...this.#inputNodes, ...this.#hiddenNodes]) {
             if (Math.random() < MUTATION_PROBABILITY) {
-                console.log("Mutating node", node);
+                // console.log("Mutating node", node);
                 node.mutate()
                 node.outgoingConnections.forEach(x => x.mutate());
-                if (Math.random() < CONNECTION_SPLIT_PROBABILITY) {
+                if (Math.random() < CONNECTION_SPLIT_PROBABILITY * (5 - this.#hiddenNodes.length) / 3) {
                     let newNode = new GNode(NODE.HIDDEN);
                     newNode.weight = 1;
                     newNode.bias = 0;
                     let connectionToSplit = node.outgoingConnections[Math.floor(Math.random()*node.outgoingConnections.length)];
-                    console.log("Splitting connection", node);
+                    // console.log("Splitting connection", node);
                     let connection = new GConnection(newNode, connectionToSplit.to);
                     connection.strength = 1;
                     connectionToSplit.updateConnection(node, newNode);
@@ -437,7 +437,7 @@ class Brain {
         }
 
         if (Math.random() < NEW_CONNECTION_PROBABILITY) {
-            console.log("Creating Connection");
+            // console.log("Creating Connection");
             let possibleNodes1 = [...this.#inputNodes, ...this.#hiddenNodes];
             let randomPick1 = possibleNodes1[Math.floor(Math.random() * possibleNodes1.length)];
             let possibleNodes2 = this.#hiddenNodes.filter(x => x.id !== randomPick1.id && !randomPick1.isInvalidChildNode(x));

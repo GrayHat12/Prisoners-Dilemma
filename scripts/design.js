@@ -1,9 +1,4 @@
-$(document).ready(function () {
-    $('#dtDynamicVerticalScrollExample').DataTable({
-        "scrollY": "50vh",
-        "scrollCollapse": true,
-    });
-    $('.dataTables_length').addClass('bs-select');
-    $('#dtBasicExample').DataTable();
-    $('.dataTables_length').addClass('bs-select');
-});
+codeInput.registerTemplate("syntax-highlighted", codeInput.templates.prism(Prism, [
+    new codeInput.plugins.Indent(true, 2),
+    new codeInput.plugins.AutoCloseBrackets()
+]));

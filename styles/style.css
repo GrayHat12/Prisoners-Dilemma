@@ -10,3 +10,8 @@ table.dataTable thead .sorting_desc_disabled:after,
 table.dataTable thead .sorting_desc_disabled:before {
     bottom: .5em;
 }
+
+code-input {
+    margin-bottom: 20px !important;
+    height: 310px !important;
+}

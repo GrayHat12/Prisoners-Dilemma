@@ -32,6 +32,7 @@ Chart.defaults.animation.duration = 600;
 const ROUNDS_RANGE = [50, 53];
 
 // const populationTableBody = document.getElementById("population");
+// const humanLogic = document.getElementById("custom-logic");
 const architectureChartElement = document.getElementById('network-line');
 const architectureScoreElement = document.getElementById("network-score-line");
 const lineChartElement = document.getElementById('morality-line');
@@ -41,6 +42,7 @@ const generationElement = document.getElementById("generation");
 const nextGenerationButton = document.getElementById("nextGeneration");
 const mutateButton = document.getElementById("mutate");
 const run10genButton = document.getElementById("run10gen");
+const updateLogicButton = document.getElementById("update-logic");
 
 /**
  * 
@@ -189,6 +191,10 @@ const populationScatter = new Chart(populationScatterElement, {
     type: 'scatter',
     data: {
         datasets: [{
+            label: 'HUMAN',
+            data: [],
+            backgroundColor: 'rgb(0, 255, 0)'
+        },{
             label: 'COOPERATIVE',
             data: [],
             backgroundColor: 'rgb(54, 162, 235)'
@@ -249,8 +255,11 @@ const personScoreChart = new Chart(personbarElement, {
     },
 });
 
+
+const human = new HumanBeing("");
+
 /**
- * @param {Being} person 
+ * @param {AIBeing} person 
  * @param {number} score 
  */
 function updateScore(person, score) {
@@ -276,10 +285,10 @@ class GenerationSimulator {
      * @param {number} population 
      */
     constructor(population) {
-        this.beings = [];
+        this.beings = [human];
         this.generation = 0;
         for (let i = 0; i < population; i++) {
-            let being = new Being();
+            let being = new AIBeing();
             // createPersonEntry(being);
             this.beings.push(being);
         }
@@ -292,19 +301,25 @@ class GenerationSimulator {
      */
     simulateOneMatch(rounds, being1, being2) {
         for (let i = 0; i < rounds; i++) {
-            let p1 = being1.decide(being2.id);
-            let p2 = being2.decide(being1.id);
-            being1.addExperience(being2.id, p2, p1);
-            being2.addExperience(being1.id, p1, p2);
-            let score = scoreCalulator([{ p1, p2 }]);
-            this.scoreBoard[being1.id] += score.p1;
-            this.scoreBoard[being2.id] += score.p2;
+            try {
+                let p1 = being1.decide(being2.id);
+                let p2 = being2.decide(being1.id);
+                being1.addExperience(being2.id, p2, p1);
+                being2.addExperience(being1.id, p1, p2);
+                let score = scoreCalulator([{ p1, p2 }]);
+                this.scoreBoard[being1.id] += score.p1;
+                this.scoreBoard[being2.id] += score.p2;
+            } catch (err) {
+                console.error("error for", being1, being2);
+                console.error(err);
+            }
         }
     }
 
     simulateGeneration() {
         let rounds = getRandomInt(ROUNDS_RANGE[0], ROUNDS_RANGE[1]);
-        console.log("GENERATION ", this.generation++, "Rounds", rounds);
+        this.generation++;
+        // console.log("GENERATION ", this.generation++, "Rounds", rounds);
         generationElement.innerText = this.generation;
         this.scoreBoard = {}
         this.beings.forEach(x => {
@@ -313,6 +328,7 @@ class GenerationSimulator {
         });
         populationScatter.data.datasets[0].data = [];
         populationScatter.data.datasets[1].data = [];
+        populationScatter.data.datasets[2].data = [];
         personScoreChart.data.labels = [];
         personScoreChart.data.datasets[0].data = [];
         personScoreChart.data.datasets[0].backgroundColor = [];
@@ -326,27 +342,34 @@ class GenerationSimulator {
             for (let otherBeing of this.beings) {
                 this.simulateOneMatch(rounds, being, otherBeing);
             }
-            let arch = `N${being.nodeCount.toString()}`;
+            let arch = being.id !== human.id ? `N${being.nodeCount.toString()}` : being.id;
             if (architectures[arch]) {
-                architectures[arch].population += 1;
+                if (being.id !== human.id) architectures[arch].population += 1;
                 architectures[arch].score += this.scoreBoard[being.id];
             } else {
-                architectures[arch] = {
-                    population: 1,
+                if (being.id !== human.id)
+                    architectures[arch] = {
+                        population: 1,
+                        score: this.scoreBoard[being.id]
+                    };
+                else architectures[arch] = {
                     score: this.scoreBoard[being.id]
-                };
-            }
-            if (being.morality >= 0.5) {
-                morality.COOPERATE += 1;
-                populationScatter.data.datasets[0].data.push({ x: being.morality, y: this.scoreBoard[being.id] });
-            } else {
-                morality.DEFECT += 1;
-                populationScatter.data.datasets[1].data.push({ x: being.morality, y: this.scoreBoard[being.id] });
+                }
             }
         }
 
         let scores = [];
         for (let being of this.beings) {
+            if (being.id === human.id) {
+                populationScatter.data.datasets[0].data.push({ x: being.morality, y: this.scoreBoard[being.id] });
+            }
+            else if (being.morality >= 0.5) {
+                morality.COOPERATE += 1;
+                populationScatter.data.datasets[1].data.push({ x: being.morality, y: this.scoreBoard[being.id] });
+            } else {
+                morality.DEFECT += 1;
+                populationScatter.data.datasets[2].data.push({ x: being.morality, y: this.scoreBoard[being.id] });
+            }
             scores.push({ score: this.scoreBoard[being.id], id: being.id, morality: being.morality });
         }
 
@@ -355,15 +378,21 @@ class GenerationSimulator {
             personScoreChart.data.labels.push(score.id);
             personScoreChart.data.datasets[0].data.push(score.score);
             if (score.morality >= 0.5) {
-                personScoreChart.data.datasets[0].backgroundColor.push("rgb(54, 162, 235)");
+                if (score.id === human.id) personScoreChart.data.datasets[0].backgroundColor.push("rgb(26, 166, 173)");
+                else personScoreChart.data.datasets[0].backgroundColor.push("rgb(54, 162, 235)");
             } else {
-                personScoreChart.data.datasets[0].backgroundColor.push("rgb(255, 99, 132)");
+                if (score.id === human.id) personScoreChart.data.datasets[0].backgroundColor.push("rgb(209, 121, 127)");
+                else personScoreChart.data.datasets[0].backgroundColor.push("rgb(255, 99, 132)");
             }
         }
 
         // console.log('archs', architectures);
+        let existingArchsPop = architectureChart.data.datasets.map(x => x.label);
+        let existingArchsScore = architectureScoreChart.data.datasets.map(x => x.label);
 
         for (let label in architectures) {
+            existingArchsPop = existingArchsPop.filter(x => x !== `Population ${label}`);
+            existingArchsScore = existingArchsScore.filter(x => x !== `Score ${label}`);
             let existingDatasetIndex = architectureChart.data.datasets.findIndex(x => x.label == `Population ${label}`);
             let existingDatasetScoreIndex = architectureScoreChart.data.datasets.findIndex(x => x.label == `Score ${label}`);
             // console.log(existingDatasetIndex);
@@ -371,7 +400,7 @@ class GenerationSimulator {
                 // console.log('pushing inside datasets.data', architectureChart.data.datasets, existingDatasetIndex);
                 architectureChart.data.datasets[existingDatasetIndex].data.push(architectures[label].population);
             }
-            else {
+            else if (typeof architectures[label].population !== "undefined") {
                 let dataset = {
                     label: `Population ${label}`,
                     data: [],
@@ -386,21 +415,30 @@ class GenerationSimulator {
             }
 
             if (existingDatasetScoreIndex >= 0) {
-                architectureScoreChart.data.datasets[existingDatasetScoreIndex].data.push(architectures[label].score / architectures[label].population);
+                if (label !== human.id) architectureScoreChart.data.datasets[existingDatasetScoreIndex].data.push(architectures[label].score / architectures[label].population);
+                else architectureScoreChart.data.datasets[existingDatasetScoreIndex].data.push(architectures[label].score);
             }
             else {
                 let dataset = {
                     label: `Score ${label}`,
                     data: [],
-                    borderColor: rainbow(10, parseInt(label.substring(1)) - 2),
+                    borderColor: label !== human.id ? rainbow(10, parseInt(label.substring(1)) - 2) : rainbow(10, 9),
                     hoverOffset: 4
                 };
                 for (let i = 0; i < this.generation - 1; i++) {
                     dataset.data.push(0);
                 }
-                dataset.data.push(architectures[label].score / architectures[label].population);
+                if (label !== human.id) dataset.data.push(architectures[label].score / architectures[label].population);
+                else dataset.data.push(architectures[label].score);
                 architectureScoreChart.data.datasets.push(dataset);
             }
+        }
+
+        for (let goneLabels of existingArchsPop) {
+            architectureChart.data.datasets[architectureChart.data.datasets.findIndex(x => x.label === goneLabels)].data.push(0);
+        }
+        for (let goneLabels of existingArchsScore) {
+            architectureScoreChart.data.datasets[architectureScoreChart.data.datasets.findIndex(x => x.label === goneLabels)].data.push(0);
         }
 
         // moralityChart.data.datasets[0].data[0] = morality.COOPERATE;
@@ -420,16 +458,16 @@ class GenerationSimulator {
         if (this.generation % 20 == 0) {
             localStorage.setItem("existingSim", JSON.stringify(generationSim.exportAll()));
         }
-        console.log("Simulated Generation");
+        // console.log("Simulated Generation");
     }
 
     generationalMutation() {
-        console.log("Running Generational Mutation");
-        let totalScore = Object.values(this.scoreBoard).reduce((sum, score) => score + sum, 0);
-        let lowestScorer = Object.entries(this.scoreBoard).sort((a, b) => a[1] - b[1]);
+        // console.log("Running Generational Mutation");
+        let totalScore = Object.entries(this.scoreBoard).filter(x => x[0] !== human.id).map(x => x[1]).reduce((sum, score) => score + sum, 0);
+        let lowestScorer = Object.entries(this.scoreBoard).filter(x => x[0] !== human.id).sort((a, b) => a[1] - b[1]);
         for (let i = lowestScorer.length - 1; i > (lowestScorer.length - 6); i--) {
             let replicateBeing = this.beings.find(x => x.id === lowestScorer[i][0]);
-            let child = new Being();
+            let child = new AIBeing();
             let exported = replicateBeing.export()
             exported.history = {};
             exported.warehouse = [];
@@ -437,6 +475,7 @@ class GenerationSimulator {
             this.beings.push(child);
         }
         for (let being of this.beings) {
+            if (being.id == human.id) continue;
             let mutationProbability = 1 - (this.scoreBoard[being.id] / totalScore);
             if (Math.random() < mutationProbability) {
                 being.mutate();
@@ -446,21 +485,22 @@ class GenerationSimulator {
         for (let i = 0; i < 5; i++) {
             this.beings = this.beings.filter(x => x.id !== lowestScorer[i][0]);
         }
-        console.log("Completed running generational mutation");
+        // console.log("Completed running generational mutation");
     }
 
     mutate() {
-        console.log("Running Mutations");
+        // console.log("Running Mutations");
         this.beings.forEach(being => {
+            if (being.id === human.id) return;
             being.mutate();
             if (being.extraData.nodesElement) being.extraData.nodesElement.innerText = being.nodeCount;
         });
-        console.log("Completed running mutations");
+        // console.log("Completed running mutations");
     }
 
     exportAll() {
         return {
-            beings: this.beings.map(x => x.export()),
+            beings: this.beings.filter(x => x.id !== human.id).map(x => x.export()),
             generation: this.generation
         }
     }
@@ -469,10 +509,10 @@ class GenerationSimulator {
      * @param {ReturnType<GenerationSimulator['exportAll']>} exportedData 
      */
     importAll(exportedData) {
-        this.beings = [];
+        this.beings = this.beings.filter(x => x.id === human.id);
         // populationTableBody.innerHTML = "";
         for (let being of exportedData.beings) {
-            let person = new Being();
+            let person = new AIBeing();
             person.import(being);
             // createPersonEntry(person);
             this.beings.push(person);
@@ -514,11 +554,13 @@ run10genButton.addEventListener("click", async () => {
         gameLoop = false;
         run10genButton.innerText = "Start Simulation";
         document.getElementById("import")?.removeAttribute("disabled");
+        updateLogicButton.removeAttribute("disabled");
         return;
     }
     if (runningAction) return;
     gameLoop = true;
     document.getElementById("import")?.setAttribute("disabled", true);
+    updateLogicButton.setAttribute("disabled", true);
     function generationLoop() {
         generationSim.simulateGeneration();
         // await delay(700);
@@ -547,3 +589,14 @@ document.getElementById("export").addEventListener("click", () => {
     downloadObjectAsJson(generationSim.exportAll(), "export-sim");
     runningAction = false;
 });
+
+updateLogicButton.addEventListener("click", () => {
+    if (runningAction) return;
+    let element = document.querySelector("#custom-logic>textarea");
+    if (element) human.setLogic(element.value);
+});
+
+waitForElm("#custom-logic>textarea").then((elem) => {
+    console.log(elem.value);
+    human.setLogic(elem.value);
+}).catch(console.error);

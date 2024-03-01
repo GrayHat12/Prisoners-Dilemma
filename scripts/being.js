@@ -45,17 +45,11 @@ function scoreCalulator(game) {
 }
 
 class Being {
-
-    /**
-     * @type {Brain}
-     */
-    #brain;
-
     /**
      * @type {{[beingId: string]: {us: Action; them: Action}[]}}
      */
     #history = {};
-
+    
     /**
      * @type {{[beingId: string]: {us: Action; them: Action}[]}[]}
      */
@@ -63,7 +57,61 @@ class Being {
 
     extraData = {};
 
+    /**
+     * 
+     * @param {string} beingId 
+     * @returns {Action}
+     */
+    decide(beingId) {
+        throw Error("Not Implemented");
+    }
+
+    /**
+     * @param {string} beingId 
+     * @param {Action} action 
+     * @param {Action} myAction
+     */
+    addExperience(beingId, action, myAction) {
+        if (typeof this.#history[beingId]) this.#history[beingId] = [];
+        this.#history[beingId].push({
+            us: myAction,
+            them: action
+        });
+    }
+
+    get id() {
+        throw Error("Not Implemented");
+    }
+
+    clearHistory() {
+        if (this.#history) this.warehouse.push(JSON.parse(JSON.stringify(this.#history)));
+        this.#history = {};
+    }
+
+    get morality() {
+        let supportCount = Object.values(this.#history).flat().filter(x => x.us === ACTION.COOPERATE).length;
+        let total = Object.values(this.#history).flat().length;
+        return supportCount / total;
+    }
+
+    get history() {
+        return {...this.#history};
+    }
+
+    set history(history) {
+        this.#history = history;
+    }
+}
+
+class AIBeing extends Being {
+
+    /**
+     * @type {Brain}
+     */
+    #brain;
+
     constructor() {
+        super();
         this.#brain = new Brain(3);
     }
 
@@ -78,7 +126,7 @@ class Being {
             1,  // Overall historical experience    0-1 % coop
             0   // score difference                 0-1 % gain on us
         ];
-        let beingHistory = this.#history[beingId];
+        let beingHistory = this.history[beingId];
         if (typeof beingHistory === "undefined") {
             inputs[0] = 1;
             inputs[1] = 1;
@@ -111,26 +159,8 @@ class Being {
         return ACTION.DEFECT;
     }
 
-    /**
-     * @param {string} beingId 
-     * @param {Action} action 
-     * @param {Action} myAction
-     */
-    addExperience(beingId, action, myAction) {
-        if (typeof this.#history[beingId]) this.#history[beingId] = [];
-        this.#history[beingId].push({
-            us: myAction,
-            them: action
-        });
-    }
-
     get id() {
         return this.#brain.id;
-    }
-
-    clearHistory() {
-        if (this.#history) this.warehouse.push(JSON.parse(JSON.stringify(this.#history)));
-        this.#history = {};
     }
 
     export() {
@@ -150,18 +180,12 @@ class Being {
         return ex.hiddenNodes.length;
     }
 
-    get morality() {
-        let supportCount = Object.values(this.#history).flat().filter(x => x.us === ACTION.COOPERATE).length;
-        let total = Object.values(this.#history).flat().length;
-        return supportCount / total;
-    }
-
     /**
-     * @param {ReturnType<Being['export']>} exportedData 
+     * @param {ReturnType<AIBeing['export']>} exportedData 
      */
     import(exportedData) {
         this.#brain.import(exportedData.brain);
-        this.#history = exportedData.history;
+        this.history = exportedData.history;
         this.warehouse = exportedData.warehouse;
     }
 }
